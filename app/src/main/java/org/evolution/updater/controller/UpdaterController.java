@@ -408,9 +408,11 @@ public class UpdaterController {
         Update update = entry.mUpdate;
         File file = update.getFile();
         if (file == null || !file.exists()) {
-            Log.e(TAG, "The destination file of " + downloadId + " doesn't exist, can't resume");
-            update.setStatus(UpdateStatus.PAUSED_ERROR);
-            notifyUpdateChange(downloadId);
+            // A download that failed before writing anything (e.g. a 404 while a fresh upload
+            // propagates to the mirrors) has no file to resume; start over instead of leaving
+            // the update stuck in PAUSED_ERROR until the app is killed.
+            Log.d(TAG, "The destination file of " + downloadId + " doesn't exist, restarting");
+            startDownload(downloadId);
             return;
         }
         if (file.exists() && update.getFileSize() > 0 && file.length() >= update.getFileSize()) {
